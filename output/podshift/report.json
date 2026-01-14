@@ -1,0 +1,81 @@
+{
+  "inputs": {
+    "repoRoot": "/Users/raymon.epping/Documents/VSC/HashiCorp/vault_pki",
+    "composePath": "/Users/raymon.epping/Documents/VSC/HashiCorp/vault_pki/docker-compose.yml"
+  },
+  "summary": {
+    "serviceCount": 2,
+    "services": [
+      {
+        "name": "vault",
+        "hasBuild": false,
+        "hasImage": true,
+        "image": "hashicorp/vault:1.17",
+        "buildContext": null,
+        "resolvedDockerfile": null,
+        "ports": [
+          "8200:8200"
+        ],
+        "volumes": [
+          "vault_file:/vault/file",
+          "./vault/config:/vault/config:ro",
+          "./shared:/shared"
+        ],
+        "env_file": [],
+        "environment": {
+          "VAULT_ADDR": "http://127.0.0.1:8200"
+        },
+        "depends_on": null,
+        "healthcheck": null,
+        "restart": "unless-stopped",
+        "networks": null,
+        "extra_hosts": [],
+        "privileged": false,
+        "network_mode": null,
+        "pid": null,
+        "ipc": null,
+        "cap_add": [
+          "IPC_LOCK"
+        ],
+        "cap_drop": [],
+        "security_opt": [],
+        "devices": []
+      },
+      {
+        "name": "nginx",
+        "hasBuild": false,
+        "hasImage": true,
+        "image": "nginx:alpine",
+        "buildContext": null,
+        "resolvedDockerfile": null,
+        "ports": [
+          "8080:80"
+        ],
+        "volumes": [
+          "./shared:/shared:ro"
+        ],
+        "env_file": [],
+        "environment": {},
+        "depends_on": null,
+        "healthcheck": null,
+        "restart": "unless-stopped",
+        "networks": null,
+        "extra_hosts": [],
+        "privileged": false,
+        "network_mode": null,
+        "pid": null,
+        "ipc": null,
+        "cap_add": [],
+        "cap_drop": [],
+        "security_opt": [],
+        "devices": []
+      }
+    ]
+  },
+  "findings": [],
+  "recommendation": {
+    "verdict": "GREEN",
+    "strategy": "podman-compose",
+    "rationale": []
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "generated": {
+    "podmanComposePath": "/Users/raymon.epping/Documents/VSC/HashiCorp/vault_pki/podman-compose.yml",
+    "migrationDocPath": "/Users/raymon.epping/Documents/VSC/HashiCorp/vault_pki/MIGRATION.md",
+    "envFiles": [],
+    "formatYaml": true,
+    "prettierConfig": null
+  },
+  "changes": []
+}

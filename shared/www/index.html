@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Vault PKI Lab Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg1: #0b1220;
+        --bg2: #0f1a2f;
+        --card: rgba(255, 255, 255, 0.06);
+        --cardBorder: rgba(255, 255, 255, 0.10);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --codeBg: rgba(255, 255, 255, 0.10);
+
+        --okBg: rgba(34, 197, 94, 0.14);
+        --okBorder: rgba(34, 197, 94, 0.35);
+        --okText: rgba(187, 247, 208, 0.95);
+
+        --warnBg: rgba(245, 158, 11, 0.14);
+        --warnBorder: rgba(245, 158, 11, 0.35);
+        --warnText: rgba(253, 230, 138, 0.95);
+
+        --dangerBg: rgba(239, 68, 68, 0.14);
+        --dangerBorder: rgba(239, 68, 68, 0.35);
+        --dangerText: rgba(254, 202, 202, 0.95);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: -apple-system, system-ui, Segoe UI, Roboto, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(1000px 600px at 20% 10%, rgba(59, 130, 246, 0.25), transparent 60%),
+          radial-gradient(800px 500px at 90% 20%, rgba(234, 179, 8, 0.18), transparent 55%),
+          linear-gradient(180deg, var(--bg1), var(--bg2));
+      }
+
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 18px 42px; }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .title {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 34px;
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        max-width: 70ch;
+      }
+
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+      .btn {
+        border: 1px solid var(--cardBorder);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 10px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+      }
+      .btn:hover { background: rgba(255, 255, 255, 0.10); }
+      .btn:active { transform: translateY(1px); }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--cardBorder);
+        background: var(--card);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+        backdrop-filter: blur(10px);
+      }
+
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.86);
+        letter-spacing: 0.01em;
+      }
+
+      .banner {
+        border-radius: 18px;
+        padding: 12px 14px;
+        margin: 12px 0 0;
+        display: none;
+        border: 1px solid var(--cardBorder);
+      }
+
+      .banner.ok { background: var(--okBg); border-color: var(--okBorder); color: var(--okText); }
+      .banner.warn { background: var(--warnBg); border-color: var(--warnBorder); color: var(--warnText); }
+      .banner.danger { background: var(--dangerBg); border-color: var(--dangerBorder); color: var(--dangerText); }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 10px 14px;
+        align-items: center;
+      }
+
+      .k { color: var(--muted); font-size: 13px; }
+      .v { display: flex; gap: 10px; align-items: center; min-width: 0; }
+
+      code {
+        background: var(--codeBg);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        padding: 6px 8px;
+        border-radius: 10px;
+        display: inline-block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      .copy {
+        border: 1px solid var(--cardBorder);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 6px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .copy:hover { background: rgba(255, 255, 255, 0.10); }
+
+      .pillrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--cardBorder);
+        background: rgba(255,255,255,0.06);
+        border-radius: 999px;
+        padding: 10px 12px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .pill:hover { background: rgba(255,255,255,0.10); }
+
+      .smallnote { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+      @media (max-width: 900px) {
+        .grid { grid-template-columns: 1fr; }
+        .kv { grid-template-columns: 1fr; }
+        .actions { justify-content: flex-start; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="title">
+          <h1>Vault PKI Lab</h1>
+          <p class="subtitle">
+            Served over a Vault-issued TLS certificate. This dashboard reads live cert metadata via <span class="mono">/cert</span>.
+          </p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="refreshBtn">Refresh</button>
+          <button class="btn" id="copyUrlBtn">Copy URL</button>
+        </div>
+      </header>
+
+      <div id="banner" class="banner"></div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Certificate</h2>
+          <div class="kv">
+            <div class="k">Common Name</div>
+            <div class="v">
+              <code id="cn">loading…</code>
+              <button class="copy" id="copyCn">Copy</button>
+            </div>
+
+            <div class="k">Issuer</div>
+            <div class="v"><code id="issuer">loading…</code></div>
+
+            <div class="k">Valid To</div>
+            <div class="v"><code id="validTo">loading…</code></div>
+
+            <div class="k">Time Left</div>
+            <div class="v"><code id="timeLeft">loading…</code></div>
+
+            <div class="k">Chain certs</div>
+            <div class="v"><code id="chainCount">loading…</code></div>
+
+            <div class="k">Fingerprint (SHA-256)</div>
+            <div class="v">
+              <code id="fp">loading…</code>
+              <button class="copy" id="copyFp">Copy</button>
+            </div>
+          </div>
+          <p class="smallnote">
+            Tip: short TTLs make rotation demos obvious. You are currently proving “Day-2 PKI” without needing a full platform stack.
+          </p>
+        </section>
+
+        <aside class="card">
+          <h2>Vault PKI Endpoints</h2>
+          <div class="pillrow">
+            <a class="pill" href="http://127.0.0.1:8200/v1/pki-int/ca" target="_blank" rel="noreferrer">Issuing CA (pki-int)</a>
+            <a class="pill" href="http://127.0.0.1:8200/v1/pki-int/crl" target="_blank" rel="noreferrer">CRL (pki-int)</a>
+            <a class="pill" href="http://127.0.0.1:8200/ui" target="_blank" rel="noreferrer">Vault UI</a>
+          </div>
+          <p class="smallnote">
+            These links are HTTP because Vault itself is running without TLS in this lab.
+          </p>
+
+          <h2 style="margin-top: 16px;">Troubleshooting</h2>
+          <p class="smallnote">
+            If the dashboard fails, hit <span class="mono">/cert</span> directly:
+            <br />
+            <span class="mono">curl -sS https://nginx.lab.local:8443/cert</span>
+          </p>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const WARNING_HOURS = 12;
+
+      function hoursLeft(validToEpochMs) {
+        return (validToEpochMs - Date.now()) / 1000 / 60 / 60;
+      }
+
+      function fmtHours(h) {
+        if (!isFinite(h)) return "unknown";
+        if (h < 0) return "expired";
+        if (h < 1) return `${Math.round(h * 60)} minutes`;
+        if (h < 48) return `${h.toFixed(1)} hours`;
+        return `${(h / 24).toFixed(1)} days`;
+      }
+
+      function showBanner(kind, text) {
+        const el = document.getElementById("banner");
+        el.className = `banner ${kind}`;
+        el.textContent = text;
+        el.style.display = "block";
+      }
+
+      async function loadCert() {
+        const res = await fetch("/cert", { cache: "no-store" });
+        if (!res.ok) throw new Error(`cert endpoint returned ${res.status}`);
+        return res.json();
+      }
+
+      function pickCN(subject) {
+        const m = subject.match(/CN=([^,]+)/);
+        return m ? m[1] : subject;
+      }
+
+      async function refresh() {
+        try {
+          const data = await loadCert();
+
+          const cn = pickCN(data.subject);
+          document.getElementById("cn").textContent = cn;
+          document.getElementById("issuer").textContent = data.issuer;
+          document.getElementById("validTo").textContent = data.validTo;
+
+          const left = hoursLeft(data.validToEpochMs);
+          document.getElementById("timeLeft").textContent = fmtHours(left);
+
+          document.getElementById("chainCount").textContent =
+            (typeof data.chainCertCount === "number")
+              ? `${data.chainCertCount} cert(s)`
+              : "unknown";
+
+          document.getElementById("fp").textContent = data.fingerprint256;
+
+          if (left < 0) {
+            showBanner("danger", "Certificate is expired. Rotation required.");
+          } else if (left < WARNING_HOURS) {
+            showBanner("warn", `Certificate expires soon: ${fmtHours(left)} left.`);
+          } else {
+            showBanner("ok", `Certificate OK: ${fmtHours(left)} left.`);
+          }
+
+          // wire copy buttons
+          document.getElementById("copyCn").onclick = async () => {
+            await navigator.clipboard.writeText(cn);
+            showBanner("ok", "Copied CN to clipboard.");
+          };
+
+          document.getElementById("copyFp").onclick = async () => {
+            await navigator.clipboard.writeText(data.fingerprint256);
+            showBanner("ok", "Copied fingerprint to clipboard.");
+          };
+
+        } catch (e) {
+          showBanner("warn", `Dashboard could not load cert metadata: ${e}`);
+        }
+      }
+
+      document.getElementById("refreshBtn").addEventListener("click", refresh);
+      document.getElementById("copyUrlBtn").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(window.location.href);
+        showBanner("ok", "Copied URL to clipboard.");
+      });
+
+      refresh();
+      // Optional: auto-refresh every 30s
+      setInterval(refresh, 30_000);
+    </script>
+  </body>
+</html>

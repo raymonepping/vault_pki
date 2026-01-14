@@ -1,0 +1,44 @@
+services:
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: vault
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+    volumes:
+      - vault_file:/vault/file
+      - ./vault/config:/vault/config:ro
+      - ./shared:/shared
+    command: vault server -config=/vault/config/vault.hcl
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./shared/certs:/etc/nginx/certs:ro
+      - ./shared/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./shared/www:/usr/share/nginx/html:ro
+
+  certinfo:
+    image: node:20-alpine
+    container_name: certinfo
+    working_dir: /app
+    command: ["node", "server.js"]
+    environment:
+      CERT_PATH: /shared/certs/nginx.crt
+      CHAIN_PATH: /shared/certs/nginx.chain.crt
+      PORT: "3000"
+    volumes:
+      - ./certinfo:/app:ro
+      - ./shared:/shared:ro
+
+volumes:
+  vault_file: null

@@ -1,0 +1,5 @@
+{
+  "verdict": "GREEN",
+  "strategy": "podman-compose",
+  "rationale": []
+}
