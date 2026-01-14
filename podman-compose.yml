@@ -1,4 +1,5 @@
 services:
+
   vault:
     image: hashicorp/vault:1.17
     container_name: vault
@@ -15,10 +16,32 @@ services:
       - ./shared:/shared
     command: vault server -config=/vault/config/vault.hcl
 
+  certinfo:
+    build:
+      context: ./certinfo
+      dockerfile: Containerfile      
+    container_name: certinfo
+    restart: unless-stopped
+    environment:
+      CERT_PATH: /shared/certs/nginx.crt
+      CHAIN_PATH: /shared/certs/nginx.chain.crt
+      CRL_PATH: /shared/www/crl/pki-int.crl.pem
+      PORT: "3000"
+    volumes:
+      - ./shared:/shared:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   nginx:
     image: nginx:alpine
     container_name: nginx
     restart: unless-stopped
+    depends_on:
+      certinfo:
+        condition: service_healthy
     ports:
       - "8080:80"
       - "8443:443"
@@ -26,20 +49,6 @@ services:
       - ./shared/certs:/etc/nginx/certs:ro
       - ./shared/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./shared/www:/usr/share/nginx/html:ro
-
-  certinfo:
-    image: node:20-alpine
-    container_name: certinfo
-    working_dir: /app
-    command: ["sh", "-lc", "apk add --no-cache openssl >/dev/null && node server.js"]
-    environment:
-      CERT_PATH: /shared/certs/nginx.crt
-      CHAIN_PATH: /shared/certs/nginx.chain.crt
-      CRL_PATH: /shared/www/crl/pki-int.crl.pem
-      PORT: "3000"
-    volumes:
-      - ./certinfo:/app:ro
-      - ./shared:/shared:ro
 
 volumes:
   vault_file: null

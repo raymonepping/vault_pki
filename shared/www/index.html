@@ -39,7 +39,7 @@
           linear-gradient(180deg, var(--bg1), var(--bg2));
       }
 
-      .wrap { max-width: 1300px; margin: 0 auto; padding: 28px 18px 42px; }
+      .wrap { max-width: 1320px; margin: 0 auto; padding: 28px 18px 42px; }
 
       header {
         display: flex;
@@ -204,39 +204,20 @@
       .status.warn { background: var(--warnBg); border-color: var(--warnBorder); color: var(--warnText); }
       .status.danger { background: var(--dangerBg); border-color: var(--dangerBorder); color: var(--dangerText); }
 
-      /* NEW: darker “code block” inside Troubleshooting */
-      pre.codeblock {
-        margin: 10px 0 0;
-        padding: 12px 12px;
+      .cli {
+        margin-top: 10px;
+        padding: 10px 12px;
         border-radius: 14px;
+        background: rgba(0,0,0,0.20);
         border: 1px solid rgba(255,255,255,0.10);
-        background: rgba(0, 0, 0, 0.22);
-        overflow-x: auto;
-      }
-      pre.codeblock code {
-        background: transparent;
-        border: none;
-        padding: 0;
-        border-radius: 0;
-        display: block;
-        white-space: pre;
-        overflow: visible;
-        text-overflow: clip;
-        max-width: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
         font-size: 12px;
-        line-height: 1.45;
-        color: rgba(255,255,255,0.90);
+        line-height: 1.35;
+        white-space: pre;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-width: 100%;
       }
-
-      /* NEW: header row for Troubleshooting card */
-      .cardhead {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 8px;
-      }
-      .cardhead h2 { margin: 0; }
 
       @media (max-width: 900px) {
         .grid { grid-template-columns: 1fr; }
@@ -389,26 +370,17 @@
           </section>
 
           <section class="card">
-            <!-- NEW: copy-all button for CLI block -->
-            <div class="cardhead">
-              <h2>Troubleshooting</h2>
-              <button class="copy" id="copyCliBlock">Copy CLI</button>
-            </div>
-
+            <h2>Troubleshooting</h2>
             <p class="smallnote">
               If the dashboard fails, hit these directly:
               <br /><span class="mono">/cert</span> and <span class="mono">/rotation/last.json</span>
             </p>
 
-            <p class="smallnote" style="margin-top: 10px;">
-              CLI checks:
-            </p>
-
-            <!-- NEW: code block that won’t wrap -->
-            <pre class="codeblock"><code id="cliBlock">curl -sS https://nginx.lab.local:8443/cert
+            <div class="smallnote" style="margin-top: 8px;">CLI checks:</div>
+            <pre class="cli">curl -sS https://nginx.lab.local:8443/cert
 curl -sS https://nginx.lab.local:8443/rotation/last.json
 curl -sS https://nginx.lab.local:8443/crl/pki-int.crl.pem | head
-curl -sS https://nginx.lab.local:8443/crl-meta | jq .</code></pre>
+curl -sS https://nginx.lab.local:8443/crl-meta | jq .</pre>
           </section>
         </aside>
       </div>
@@ -524,7 +496,6 @@ curl -sS https://nginx.lab.local:8443/crl-meta | jq .</code></pre>
           wireCopy("copyFp", () => cert.fingerprint256, "Copied fingerprint to clipboard.");
           wireCopy("copySerial", () => cert.serialNumber, "Copied serial to clipboard.");
 
-          // Rotation receipts
           setText("rotatedAt", rot ? safe(rot.rotatedAt) : "not yet");
           setText("backupDir", rot ? safe(rot.backupDir) : "not yet");
 
@@ -541,48 +512,36 @@ curl -sS https://nginx.lab.local:8443/crl-meta | jq .</code></pre>
           wireCopy("copyPrevSerial", () => prevSerial, "Copied previous serial to clipboard.");
           wireCopy("copyPrevFp", () => prevFp, "Copied previous fingerprint to clipboard.");
 
-          // CRL status
           const crlUrl = `${window.location.origin}/crl/pki-int.crl.pem`;
           setText("crlUrl", crlUrl);
           wireCopy("copyCrlUrl", () => crlUrl, "Copied CRL URL to clipboard.");
 
-          // Baseline CRL meta
-          const crlMeta = await loadJson("/crl-meta");
-          if (!crlMeta?.ok) {
+          try {
+            const crlMeta = await loadJson("/crl-meta");
+
+            setText("crlLast", safe(crlMeta.lastUpdate));
+            setText("crlNext", safe(crlMeta.nextUpdate));
+            setText("crlCount", (typeof crlMeta.revokedCount === "number") ? String(crlMeta.revokedCount) : safe(crlMeta.revokedCount));
+
+            const prevQuery = normalizeSerialForQuery(prevSerial);
+
+            if (!prevQuery) {
+              setText("prevRevoked", "n/a");
+              setCrlStatus("ok", "CRL ok");
+            } else {
+              const check = await loadJson(`/crl-meta?serial=${encodeURIComponent(prevQuery)}`);
+              setText("prevRevoked", yesNo(check?.serialRevoked));
+
+              if (check?.serialRevoked === true) setCrlStatus("ok", "CRL ok, serial revoked");
+              else if (check?.serialRevoked === false) setCrlStatus("ok", "CRL ok, serial not revoked");
+              else setCrlStatus("warn", "CRL ok, serial check unavailable");
+            }
+          } catch (e) {
             setText("crlLast", "n/a");
             setText("crlNext", "n/a");
             setText("crlCount", "n/a");
             setText("prevRevoked", "n/a");
             setCrlStatus("danger", "CRL meta unavailable");
-            return;
-          }
-
-          setText("crlLast", safe(crlMeta.lastUpdate));
-          setText("crlNext", safe(crlMeta.nextUpdate));
-          setText(
-            "crlCount",
-            (typeof crlMeta.revokedCount === "number")
-              ? String(crlMeta.revokedCount)
-              : safe(crlMeta.revokedCount)
-          );
-
-          // Optional prev-serial check
-          const prevQuery = normalizeSerialForQuery(prevSerial);
-          if (!prevQuery) {
-            setText("prevRevoked", "n/a");
-            setCrlStatus("ok", "CRL ok");
-            return;
-          }
-
-          const check = await loadJson(`/crl-meta?serial=${encodeURIComponent(prevQuery)}`);
-          setText("prevRevoked", yesNo(check?.serialRevoked));
-
-          if (check?.serialRevoked === true) {
-            setCrlStatus("ok", "CRL ok, serial revoked");
-          } else if (check?.serialRevoked === false) {
-            setCrlStatus("ok", "CRL ok, previous cert not revoked");
-          } else {
-            setCrlStatus("warn", "CRL ok, serial check unavailable");
           }
 
         } catch (e) {
@@ -599,14 +558,6 @@ curl -sS https://nginx.lab.local:8443/crl-meta | jq .</code></pre>
       document.getElementById("copyUrlBtn").addEventListener("click", async () => {
         await navigator.clipboard.writeText(window.location.href);
         showBanner("ok", "Copied URL to clipboard.");
-      });
-
-      // NEW: copy the whole CLI block
-      document.getElementById("copyCliBlock").addEventListener("click", async () => {
-        const text = document.getElementById("cliBlock")?.textContent || "";
-        if (!text) return;
-        await navigator.clipboard.writeText(text);
-        showBanner("ok", "Copied CLI block to clipboard.");
       });
 
       refresh();

@@ -7,8 +7,6 @@ const PORT = process.env.PORT || 3000;
 
 const CERT_PATH = process.env.CERT_PATH || "/shared/certs/nginx.crt";
 const CHAIN_PATH = process.env.CHAIN_PATH || "/shared/certs/nginx.chain.crt";
-
-// Published by your revoke script
 const CRL_PATH = process.env.CRL_PATH || "/shared/www/crl/pki-int.crl.pem";
 
 function hasOpenSSL() {
@@ -17,7 +15,7 @@ function hasOpenSSL() {
 }
 
 function countPemCerts(path) {
-  if (!path || !fs.existsSync(path)) return 0;
+  if (!fs.existsSync(path)) return 0;
   const s = fs.readFileSync(path, "utf8");
   const m = s.match(/-----BEGIN CERTIFICATE-----/g);
   return m ? m.length : 0;
@@ -70,16 +68,17 @@ function parseCrlWithOpenSSL(crlPath) {
       encoding: "utf8",
     });
   } catch (e) {
-    return { ok: false, error: `failed to run openssl crl on ${crlPath}: ${String(e)}` };
+    return {
+      ok: false,
+      error: `failed to run openssl crl on ${crlPath}: ${String(e)}`,
+    };
   }
 
   const lastUpdate = (text.match(/Last Update:\s*(.+)\n/i) || [])[1] || null;
   const nextUpdate = (text.match(/Next Update:\s*(.+)\n/i) || [])[1] || null;
 
   const serialMatches = [...text.matchAll(/Serial Number:\s*([0-9A-Fa-f]+)/g)];
-  const revokedSerials = serialMatches
-    .map((m) => normalizeSerialHex(m[1]))
-    .filter(Boolean);
+  const revokedSerials = serialMatches.map((m) => normalizeSerialHex(m[1])).filter(Boolean);
 
   return {
     ok: true,
@@ -88,7 +87,7 @@ function parseCrlWithOpenSSL(crlPath) {
     lastUpdate,
     nextUpdate,
     revokedCount: revokedSerials.length,
-    revokedSerials,
+    revokedSerials, // internal use only
   };
 }
 
@@ -115,7 +114,6 @@ const server = http.createServer((req, res) => {
     }
   }
 
-  // /crl-meta and /crl-meta?serial=<hex-with-or-without-colons>
   if (url.pathname === "/crl-meta") {
     if (!hasOpenSSL()) {
       return sendJson(res, 500, {
@@ -130,7 +128,6 @@ const server = http.createServer((req, res) => {
     const qSerial = normalizeSerialHex(url.searchParams.get("serial"));
     const serialRevoked = qSerial ? parsed.revokedSerials.includes(qSerial) : null;
 
-    // Keep response slim
     const { revokedSerials, ...base } = parsed;
 
     return sendJson(res, 200, {
