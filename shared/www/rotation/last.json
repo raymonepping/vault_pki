@@ -1,0 +1,15 @@
+{
+  "rotatedAt": "2026-01-14T11:06:57Z",
+  "commonName": "nginx.lab.local",
+  "ttl": "24h",
+  "backupDir": "./shared/certs/backups/20260114-120656",
+  "previous": {
+    "serial": "32797FE08187A053811EE2EC9831BB85A01CF9A0",
+    "fingerprint256": "3F:34:09:D1:BC:3D:E6:79:1D:95:0B:57:99:79:6C:E5:15:39:A6:B2:52:75:9A:05:4F:80:00:30:4D:4B:A8:67"
+  },
+  "current": {
+    "serial": "01885EA175A376CF0D105A7A4A5789F920F02B8E",
+    "fingerprint256": "39:D7:3D:77:08:B5:4B:9F:3A:01:C9:DA:14:92:AC:DB:19:E4:1D:99:C3:10:5F:FB:F8:25:25:59:BC:C1:AD:24",
+    "notAfter": "Jan 15 11:06:56 2026 GMT"
+  }
+}

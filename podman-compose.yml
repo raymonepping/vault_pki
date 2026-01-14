@@ -31,10 +31,11 @@ services:
     image: node:20-alpine
     container_name: certinfo
     working_dir: /app
-    command: ["node", "server.js"]
+    command: ["sh", "-lc", "apk add --no-cache openssl >/dev/null && node server.js"]
     environment:
       CERT_PATH: /shared/certs/nginx.crt
       CHAIN_PATH: /shared/certs/nginx.chain.crt
+      CRL_PATH: /shared/www/crl/pki-int.crl.pem
       PORT: "3000"
     volumes:
       - ./certinfo:/app:ro

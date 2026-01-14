@@ -39,7 +39,7 @@
           linear-gradient(180deg, var(--bg1), var(--bg2));
       }
 
-      .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 18px 42px; }
+      .wrap { max-width: 1300px; margin: 0 auto; padding: 28px 18px 42px; }
 
       header {
         display: flex;
@@ -87,6 +87,12 @@
         grid-template-columns: 1.2fr 0.8fr;
         gap: 14px;
         margin-top: 14px;
+      }
+
+      .stack {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
       }
 
       .card {
@@ -168,8 +174,69 @@
       .pill:hover { background: rgba(255,255,255,0.10); }
 
       .smallnote { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
-
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--cardBorder);
+        background: rgba(255,255,255,0.06);
+        border-radius: 999px;
+        padding: 6px 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--cardBorder);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: var(--muted);
+        background: rgba(255,255,255,0.06);
+        white-space: nowrap;
+      }
+      .status.ok { background: var(--okBg); border-color: var(--okBorder); color: var(--okText); }
+      .status.warn { background: var(--warnBg); border-color: var(--warnBorder); color: var(--warnText); }
+      .status.danger { background: var(--dangerBg); border-color: var(--dangerBorder); color: var(--dangerText); }
+
+      /* NEW: darker “code block” inside Troubleshooting */
+      pre.codeblock {
+        margin: 10px 0 0;
+        padding: 12px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(0, 0, 0, 0.22);
+        overflow-x: auto;
+      }
+      pre.codeblock code {
+        background: transparent;
+        border: none;
+        padding: 0;
+        border-radius: 0;
+        display: block;
+        white-space: pre;
+        overflow: visible;
+        text-overflow: clip;
+        max-width: none;
+        font-size: 12px;
+        line-height: 1.45;
+        color: rgba(255,255,255,0.90);
+      }
+
+      /* NEW: header row for Troubleshooting card */
+      .cardhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .cardhead h2 { margin: 0; }
 
       @media (max-width: 900px) {
         .grid { grid-template-columns: 1fr; }
@@ -184,7 +251,8 @@
         <div class="title">
           <h1>Vault PKI Lab</h1>
           <p class="subtitle">
-            Served over a Vault-issued TLS certificate. This dashboard reads live cert metadata via <span class="mono">/cert</span>.
+            Served over a Vault-issued TLS certificate. This dashboard reads live cert metadata via <span class="mono">/cert</span>
+            and rotation receipts via <span class="mono">/rotation/last.json</span>.
           </p>
         </div>
         <div class="actions">
@@ -196,61 +264,162 @@
       <div id="banner" class="banner"></div>
 
       <div class="grid">
-        <section class="card">
-          <h2>Certificate</h2>
-          <div class="kv">
-            <div class="k">Common Name</div>
-            <div class="v">
-              <code id="cn">loading…</code>
-              <button class="copy" id="copyCn">Copy</button>
+        <div class="stack">
+          <section class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <h2>Certificate</h2>
+              <span class="badge" id="lastUpdated">Last updated: …</span>
             </div>
 
-            <div class="k">Issuer</div>
-            <div class="v"><code id="issuer">loading…</code></div>
+            <div class="kv">
+              <div class="k">Common Name</div>
+              <div class="v">
+                <code id="cn">loading…</code>
+                <button class="copy" id="copyCn">Copy</button>
+              </div>
 
-            <div class="k">Valid To</div>
-            <div class="v"><code id="validTo">loading…</code></div>
+              <div class="k">Issuer</div>
+              <div class="v"><code id="issuer">loading…</code></div>
 
-            <div class="k">Time Left</div>
-            <div class="v"><code id="timeLeft">loading…</code></div>
+              <div class="k">Valid To</div>
+              <div class="v"><code id="validTo">loading…</code></div>
 
-            <div class="k">Chain certs</div>
-            <div class="v"><code id="chainCount">loading…</code></div>
+              <div class="k">Time Left</div>
+              <div class="v"><code id="timeLeft">loading…</code></div>
 
-            <div class="k">Fingerprint (SHA-256)</div>
-            <div class="v">
-              <code id="fp">loading…</code>
-              <button class="copy" id="copyFp">Copy</button>
+              <div class="k">Chain certs</div>
+              <div class="v"><code id="chainCount">loading…</code></div>
+
+              <div class="k">Serial</div>
+              <div class="v">
+                <code id="serial">loading…</code>
+                <button class="copy" id="copySerial">Copy</button>
+              </div>
+
+              <div class="k">Fingerprint (SHA-256)</div>
+              <div class="v">
+                <code id="fp">loading…</code>
+                <button class="copy" id="copyFp">Copy</button>
+              </div>
             </div>
-          </div>
-          <p class="smallnote">
-            Tip: short TTLs make rotation demos obvious. You are currently proving “Day-2 PKI” without needing a full platform stack.
-          </p>
-        </section>
 
-        <aside class="card">
-          <h2>Vault PKI Endpoints</h2>
-          <div class="pillrow">
-            <a class="pill" href="http://127.0.0.1:8200/v1/pki-int/ca" target="_blank" rel="noreferrer">Issuing CA (pki-int)</a>
-            <a class="pill" href="http://127.0.0.1:8200/v1/pki-int/crl" target="_blank" rel="noreferrer">CRL (pki-int)</a>
-            <a class="pill" href="http://127.0.0.1:8200/ui" target="_blank" rel="noreferrer">Vault UI</a>
-          </div>
-          <p class="smallnote">
-            These links are HTTP because Vault itself is running without TLS in this lab.
-          </p>
+            <p class="smallnote">
+              Tip: short TTLs make rotation demos obvious. You are proving Day-2 PKI with rotation, reload, and CRL verification.
+            </p>
+          </section>
 
-          <h2 style="margin-top: 16px;">Troubleshooting</h2>
-          <p class="smallnote">
-            If the dashboard fails, hit <span class="mono">/cert</span> directly:
-            <br />
-            <span class="mono">curl -sS https://nginx.lab.local:8443/cert</span>
-          </p>
+          <section class="card">
+            <h2>Rotation Receipts</h2>
+            <div class="kv">
+              <div class="k">Rotated At (UTC)</div>
+              <div class="v"><code id="rotatedAt">loading…</code></div>
+
+              <div class="k">Backup Folder</div>
+              <div class="v"><code id="backupDir">loading…</code></div>
+
+              <div class="k">Previous Serial</div>
+              <div class="v">
+                <code id="prevSerial">loading…</code>
+                <button class="copy" id="copyPrevSerial">Copy</button>
+              </div>
+
+              <div class="k">Previous Fingerprint</div>
+              <div class="v">
+                <code id="prevFp">loading…</code>
+                <button class="copy" id="copyPrevFp">Copy</button>
+              </div>
+
+              <div class="k">Current Serial</div>
+              <div class="v"><code id="currSerial">loading…</code></div>
+
+              <div class="k">Current Fingerprint</div>
+              <div class="v"><code id="currFp">loading…</code></div>
+            </div>
+
+            <p class="smallnote">
+              This is intentionally “receipt-driven”. If rotation happens, you can prove it quickly without SSH’ing into anything.
+            </p>
+          </section>
+        </div>
+
+        <aside class="stack">
+          <section class="card">
+            <h2>Vault PKI Endpoints</h2>
+            <div class="pillrow">
+              <a class="pill" href="http://127.0.0.1:8200/v1/pki-int/ca" target="_blank" rel="noreferrer">Issuing CA (pki-int)</a>
+              <a class="pill" href="http://127.0.0.1:8200/v1/pki-int/crl/pem" target="_blank" rel="noreferrer">CRL (pki-int, PEM)</a>
+              <a class="pill" href="/crl/pki-int.crl.pem" target="_blank" rel="noreferrer">CRL (served via nginx, TLS)</a>
+              <a class="pill" href="http://127.0.0.1:8200/ui" target="_blank" rel="noreferrer">Vault UI</a>
+            </div>
+            <p class="smallnote">
+              These links are HTTP because Vault itself is running without TLS in this lab.
+            </p>
+          </section>
+
+          <section class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <h2>CRL Status</h2>
+              <span class="status" id="crlStatus">loading…</span>
+            </div>
+
+            <div class="kv" style="margin-top: 10px;">
+              <div class="k">CRL URL</div>
+              <div class="v">
+                <code id="crlUrl">/crl/pki-int.crl.pem</code>
+                <button class="copy" id="copyCrlUrl">Copy</button>
+              </div>
+
+              <div class="k">Last Update</div>
+              <div class="v"><code id="crlLast">loading…</code></div>
+
+              <div class="k">Next Update</div>
+              <div class="v"><code id="crlNext">loading…</code></div>
+
+              <div class="k">Revoked Count</div>
+              <div class="v"><code id="crlCount">loading…</code></div>
+
+              <div class="k">Prev Serial Revoked</div>
+              <div class="v"><code id="prevRevoked">loading…</code></div>
+            </div>
+
+            <p class="smallnote">
+              This reads <span class="mono">/crl-meta</span> (server-side parse) and optionally checks the previous serial from the rotation receipt.
+              Browsers are not great at CRLs. We cheat responsibly.
+            </p>
+          </section>
+
+          <section class="card">
+            <!-- NEW: copy-all button for CLI block -->
+            <div class="cardhead">
+              <h2>Troubleshooting</h2>
+              <button class="copy" id="copyCliBlock">Copy CLI</button>
+            </div>
+
+            <p class="smallnote">
+              If the dashboard fails, hit these directly:
+              <br /><span class="mono">/cert</span> and <span class="mono">/rotation/last.json</span>
+            </p>
+
+            <p class="smallnote" style="margin-top: 10px;">
+              CLI checks:
+            </p>
+
+            <!-- NEW: code block that won’t wrap -->
+            <pre class="codeblock"><code id="cliBlock">curl -sS https://nginx.lab.local:8443/cert
+curl -sS https://nginx.lab.local:8443/rotation/last.json
+curl -sS https://nginx.lab.local:8443/crl/pki-int.crl.pem | head
+curl -sS https://nginx.lab.local:8443/crl-meta | jq .</code></pre>
+          </section>
         </aside>
       </div>
     </div>
 
     <script>
       const WARNING_HOURS = 12;
+
+      function nowIso() {
+        return new Date().toISOString().replace("T", " ").replace("Z", " UTC");
+      }
 
       function hoursLeft(validToEpochMs) {
         return (validToEpochMs - Date.now()) / 1000 / 60 / 60;
@@ -271,9 +440,15 @@
         el.style.display = "block";
       }
 
-      async function loadCert() {
-        const res = await fetch("/cert", { cache: "no-store" });
-        if (!res.ok) throw new Error(`cert endpoint returned ${res.status}`);
+      function setCrlStatus(kind, text) {
+        const el = document.getElementById("crlStatus");
+        el.className = `status ${kind || ""}`.trim();
+        el.textContent = text;
+      }
+
+      async function loadJson(path) {
+        const res = await fetch(path, { cache: "no-store" });
+        if (!res.ok) throw new Error(`${path} returned ${res.status}`);
         return res.json();
       }
 
@@ -282,46 +457,141 @@
         return m ? m[1] : subject;
       }
 
+      function safe(v, fallback = "n/a") {
+        return (v === undefined || v === null || v === "") ? fallback : v;
+      }
+
+      function wireCopy(id, valueFn, okMsg) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.onclick = async () => {
+          const v = valueFn();
+          if (!v) return;
+          await navigator.clipboard.writeText(v);
+          showBanner("ok", okMsg);
+        };
+      }
+
+      function normalizeSerialForQuery(serialMaybe) {
+        if (!serialMaybe) return "";
+        return String(serialMaybe).replace(/[^0-9a-fA-F]/g, "").toUpperCase();
+      }
+
+      function yesNo(v) {
+        if (v === true) return "yes";
+        if (v === false) return "no";
+        return "n/a";
+      }
+
+      function setText(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value;
+      }
+
       async function refresh() {
         try {
-          const data = await loadCert();
+          const [cert, rot] = await Promise.all([
+            loadJson("/cert"),
+            loadJson("/rotation/last.json").catch(() => null)
+          ]);
 
-          const cn = pickCN(data.subject);
-          document.getElementById("cn").textContent = cn;
-          document.getElementById("issuer").textContent = data.issuer;
-          document.getElementById("validTo").textContent = data.validTo;
+          setText("lastUpdated", `Last updated: ${nowIso()}`);
 
-          const left = hoursLeft(data.validToEpochMs);
-          document.getElementById("timeLeft").textContent = fmtHours(left);
+          const cn = pickCN(cert.subject);
+          setText("cn", cn);
+          setText("issuer", cert.issuer);
+          setText("validTo", cert.validTo);
 
-          document.getElementById("chainCount").textContent =
-            (typeof data.chainCertCount === "number")
-              ? `${data.chainCertCount} cert(s)`
-              : "unknown";
+          const left = hoursLeft(cert.validToEpochMs);
+          setText("timeLeft", fmtHours(left));
 
-          document.getElementById("fp").textContent = data.fingerprint256;
+          setText(
+            "chainCount",
+            (typeof cert.chainCertCount === "number")
+              ? `${cert.chainCertCount} cert(s)`
+              : "unknown"
+          );
 
-          if (left < 0) {
-            showBanner("danger", "Certificate is expired. Rotation required.");
-          } else if (left < WARNING_HOURS) {
-            showBanner("warn", `Certificate expires soon: ${fmtHours(left)} left.`);
-          } else {
-            showBanner("ok", `Certificate OK: ${fmtHours(left)} left.`);
+          setText("serial", cert.serialNumber);
+          setText("fp", cert.fingerprint256);
+
+          if (left < 0) showBanner("danger", "Certificate is expired. Rotation required.");
+          else if (left < WARNING_HOURS) showBanner("warn", `Certificate expires soon: ${fmtHours(left)} left.`);
+          else showBanner("ok", `Certificate OK: ${fmtHours(left)} left.`);
+
+          wireCopy("copyCn", () => cn, "Copied CN to clipboard.");
+          wireCopy("copyFp", () => cert.fingerprint256, "Copied fingerprint to clipboard.");
+          wireCopy("copySerial", () => cert.serialNumber, "Copied serial to clipboard.");
+
+          // Rotation receipts
+          setText("rotatedAt", rot ? safe(rot.rotatedAt) : "not yet");
+          setText("backupDir", rot ? safe(rot.backupDir) : "not yet");
+
+          const prevSerial = rot?.previous?.serial ? String(rot.previous.serial) : "";
+          const prevFp = rot?.previous?.fingerprint256 ? String(rot.previous.fingerprint256) : "";
+          const currSerial = rot?.current?.serial ? String(rot.current.serial) : "";
+          const currFp = rot?.current?.fingerprint256 ? String(rot.current.fingerprint256) : "";
+
+          setText("prevSerial", safe(prevSerial, "n/a"));
+          setText("prevFp", safe(prevFp, "n/a"));
+          setText("currSerial", safe(currSerial, "n/a"));
+          setText("currFp", safe(currFp, "n/a"));
+
+          wireCopy("copyPrevSerial", () => prevSerial, "Copied previous serial to clipboard.");
+          wireCopy("copyPrevFp", () => prevFp, "Copied previous fingerprint to clipboard.");
+
+          // CRL status
+          const crlUrl = `${window.location.origin}/crl/pki-int.crl.pem`;
+          setText("crlUrl", crlUrl);
+          wireCopy("copyCrlUrl", () => crlUrl, "Copied CRL URL to clipboard.");
+
+          // Baseline CRL meta
+          const crlMeta = await loadJson("/crl-meta");
+          if (!crlMeta?.ok) {
+            setText("crlLast", "n/a");
+            setText("crlNext", "n/a");
+            setText("crlCount", "n/a");
+            setText("prevRevoked", "n/a");
+            setCrlStatus("danger", "CRL meta unavailable");
+            return;
           }
 
-          // wire copy buttons
-          document.getElementById("copyCn").onclick = async () => {
-            await navigator.clipboard.writeText(cn);
-            showBanner("ok", "Copied CN to clipboard.");
-          };
+          setText("crlLast", safe(crlMeta.lastUpdate));
+          setText("crlNext", safe(crlMeta.nextUpdate));
+          setText(
+            "crlCount",
+            (typeof crlMeta.revokedCount === "number")
+              ? String(crlMeta.revokedCount)
+              : safe(crlMeta.revokedCount)
+          );
 
-          document.getElementById("copyFp").onclick = async () => {
-            await navigator.clipboard.writeText(data.fingerprint256);
-            showBanner("ok", "Copied fingerprint to clipboard.");
-          };
+          // Optional prev-serial check
+          const prevQuery = normalizeSerialForQuery(prevSerial);
+          if (!prevQuery) {
+            setText("prevRevoked", "n/a");
+            setCrlStatus("ok", "CRL ok");
+            return;
+          }
+
+          const check = await loadJson(`/crl-meta?serial=${encodeURIComponent(prevQuery)}`);
+          setText("prevRevoked", yesNo(check?.serialRevoked));
+
+          if (check?.serialRevoked === true) {
+            setCrlStatus("ok", "CRL ok, serial revoked");
+          } else if (check?.serialRevoked === false) {
+            setCrlStatus("ok", "CRL ok, previous cert not revoked");
+          } else {
+            setCrlStatus("warn", "CRL ok, serial check unavailable");
+          }
 
         } catch (e) {
-          showBanner("warn", `Dashboard could not load cert metadata: ${e}`);
+          showBanner("warn", `Dashboard could not load data: ${e}`);
+          setText("crlLast", "n/a");
+          setText("crlNext", "n/a");
+          setText("crlCount", "n/a");
+          setText("prevRevoked", "n/a");
+          setCrlStatus("danger", "CRL meta unavailable");
         }
       }
 
@@ -331,8 +601,15 @@
         showBanner("ok", "Copied URL to clipboard.");
       });
 
+      // NEW: copy the whole CLI block
+      document.getElementById("copyCliBlock").addEventListener("click", async () => {
+        const text = document.getElementById("cliBlock")?.textContent || "";
+        if (!text) return;
+        await navigator.clipboard.writeText(text);
+        showBanner("ok", "Copied CLI block to clipboard.");
+      });
+
       refresh();
-      // Optional: auto-refresh every 30s
       setInterval(refresh, 30_000);
     </script>
   </body>

@@ -1,46 +1,33 @@
 import fs from "node:fs";
 import http from "node:http";
 import crypto from "node:crypto";
-import path from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
 
 const PORT = process.env.PORT || 3000;
+
 const CERT_PATH = process.env.CERT_PATH || "/shared/certs/nginx.crt";
 const CHAIN_PATH = process.env.CHAIN_PATH || "/shared/certs/nginx.chain.crt";
 
-function countPemCertBlocks(pemText) {
-  const matches = pemText.match(/-----BEGIN CERTIFICATE-----/g);
-  return matches ? matches.length : 0;
+// Published by your revoke script
+const CRL_PATH = process.env.CRL_PATH || "/shared/www/crl/pki-int.crl.pem";
+
+function hasOpenSSL() {
+  const r = spawnSync("openssl", ["version"], { encoding: "utf8" });
+  return r.status === 0;
 }
 
-function readChainMeta() {
-  try {
-    const pem = fs.readFileSync(CHAIN_PATH, "utf8");
-    return {
-      chainPath: CHAIN_PATH,
-      chainFile: path.basename(CHAIN_PATH),
-      chainExists: true,
-      chainCertCount: countPemCertBlocks(pem),
-      chainBytes: Buffer.byteLength(pem, "utf8"),
-    };
-  } catch (err) {
-    return {
-      chainPath: CHAIN_PATH,
-      chainFile: path.basename(CHAIN_PATH),
-      chainExists: false,
-      chainCertCount: 0,
-      chainBytes: 0,
-      chainError: String(err),
-    };
-  }
+function countPemCerts(path) {
+  if (!path || !fs.existsSync(path)) return 0;
+  const s = fs.readFileSync(path, "utf8");
+  const m = s.match(/-----BEGIN CERTIFICATE-----/g);
+  return m ? m.length : 0;
 }
 
-function readLeafMeta() {
+function readCertMeta() {
   const pem = fs.readFileSync(CERT_PATH, "utf8");
 
   if (typeof crypto.X509Certificate !== "function") {
-    throw new Error(
-      "crypto.X509Certificate is not available in this Node build",
-    );
+    throw new Error("crypto.X509Certificate is not available in this Node build");
   }
 
   const x509 = new crypto.X509Certificate(pem);
@@ -49,7 +36,7 @@ function readLeafMeta() {
 
   return {
     certPath: CERT_PATH,
-    certFile: path.basename(CERT_PATH),
+    certFile: CERT_PATH.split("/").pop(),
     subject: x509.subject,
     issuer: x509.issuer,
     validFrom: notBefore.toISOString(),
@@ -58,44 +45,107 @@ function readLeafMeta() {
     nowEpochMs: Date.now(),
     fingerprint256: x509.fingerprint256,
     serialNumber: x509.serialNumber,
+
+    chainPath: CHAIN_PATH,
+    chainFile: CHAIN_PATH ? CHAIN_PATH.split("/").pop() : null,
+    chainExists: CHAIN_PATH ? fs.existsSync(CHAIN_PATH) : false,
+    chainCertCount: CHAIN_PATH ? countPemCerts(CHAIN_PATH) : null,
+    chainBytes: CHAIN_PATH && fs.existsSync(CHAIN_PATH) ? fs.statSync(CHAIN_PATH).size : null,
   };
 }
 
-function readCertMeta() {
+function normalizeSerialHex(s) {
+  if (!s) return "";
+  return String(s).replace(/[^0-9a-fA-F]/g, "").toUpperCase();
+}
+
+function parseCrlWithOpenSSL(crlPath) {
+  if (!fs.existsSync(crlPath)) {
+    return { ok: false, error: `CRL file not found at ${crlPath}` };
+  }
+
+  let text = "";
+  try {
+    text = execFileSync("openssl", ["crl", "-in", crlPath, "-noout", "-text"], {
+      encoding: "utf8",
+    });
+  } catch (e) {
+    return { ok: false, error: `failed to run openssl crl on ${crlPath}: ${String(e)}` };
+  }
+
+  const lastUpdate = (text.match(/Last Update:\s*(.+)\n/i) || [])[1] || null;
+  const nextUpdate = (text.match(/Next Update:\s*(.+)\n/i) || [])[1] || null;
+
+  const serialMatches = [...text.matchAll(/Serial Number:\s*([0-9A-Fa-f]+)/g)];
+  const revokedSerials = serialMatches
+    .map((m) => normalizeSerialHex(m[1]))
+    .filter(Boolean);
+
   return {
-    ...readLeafMeta(),
-    ...readChainMeta(),
+    ok: true,
+    crlPath,
+    crlFile: crlPath.split("/").pop(),
+    lastUpdate,
+    nextUpdate,
+    revokedCount: revokedSerials.length,
+    revokedSerials,
   };
+}
+
+function sendJson(res, code, obj) {
+  res.writeHead(code, {
+    "content-type": "application/json",
+    "cache-control": "no-store",
+  });
+  res.end(JSON.stringify(obj, null, 2));
 }
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/healthz") {
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true }));
-    return;
+  const url = new URL(req.url, `http://${req.headers.host}`);
+
+  if (url.pathname === "/healthz") {
+    return sendJson(res, 200, { ok: true });
   }
 
-  if (req.url === "/cert") {
+  if (url.pathname === "/cert") {
     try {
-      const meta = readCertMeta();
-      res.writeHead(200, {
-        "content-type": "application/json",
-        "cache-control": "no-store",
-      });
-      res.end(JSON.stringify(meta, null, 2));
+      return sendJson(res, 200, readCertMeta());
     } catch (err) {
-      res.writeHead(500, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: false, error: String(err) }));
+      return sendJson(res, 500, { ok: false, error: String(err) });
     }
-    return;
   }
 
-  res.writeHead(404, { "content-type": "application/json" });
-  res.end(JSON.stringify({ ok: false, error: "not found" }));
+  // /crl-meta and /crl-meta?serial=<hex-with-or-without-colons>
+  if (url.pathname === "/crl-meta") {
+    if (!hasOpenSSL()) {
+      return sendJson(res, 500, {
+        ok: false,
+        error: "openssl not found in container. Install it (apk add --no-cache openssl).",
+      });
+    }
+
+    const parsed = parseCrlWithOpenSSL(CRL_PATH);
+    if (!parsed.ok) return sendJson(res, 500, parsed);
+
+    const qSerial = normalizeSerialHex(url.searchParams.get("serial"));
+    const serialRevoked = qSerial ? parsed.revokedSerials.includes(qSerial) : null;
+
+    // Keep response slim
+    const { revokedSerials, ...base } = parsed;
+
+    return sendJson(res, 200, {
+      ...base,
+      serialQuery: qSerial || null,
+      serialRevoked,
+    });
+  }
+
+  return sendJson(res, 404, { ok: false, error: "not found" });
 });
 
 server.listen(PORT, () => {
-  console.log(
-    `certinfo listening on :${PORT}, leaf=${CERT_PATH}, chain=${CHAIN_PATH}`,
-  );
+  console.log(`certinfo listening on :${PORT}`);
+  console.log(`CERT_PATH=${CERT_PATH}`);
+  console.log(`CHAIN_PATH=${CHAIN_PATH}`);
+  console.log(`CRL_PATH=${CRL_PATH}`);
 });
