@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl tini
+RUN apk add --no-cache openssl tini zip
 
 WORKDIR /app
 COPY server.js /app/server.js

@@ -1,0 +1,14 @@
+{
+  "commonName": "app-003.lab.local",
+  "ttl": "24h",
+  "serialVault": "4e:19:5f:bb:cd:fe:d6:68:8b:a8:39:91:d1:26:23:8a:fd:7a:56:e0",
+  "notAfter": "Jan 15 15:33:14 2026 GMT",
+  "fingerprintSha256": "DC:37:59:9C:9B:85:D0:F5:E9:90:A9:AF:92:46:49:45:BA:A6:74:40:BA:5A:92:D4:C9:05:18:71:D4:11:D4:D5",
+  "paths": {
+    "leafCrt": "leaf.crt",
+    "leafKey": "leaf.key",
+    "issuingCa": "issuing_ca.pem",
+    "chainPem": "chain.pem",
+    "fullchainPem": "fullchain.pem"
+  }
+}

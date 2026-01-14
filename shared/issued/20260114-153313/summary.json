@@ -1,0 +1,56 @@
+{
+  "issuedAtUtc": "2026-01-14T15:33:13Z",
+  "mount": "pki-int",
+  "role": "nginx",
+  "ttl": "24h",
+  "count": 5,
+  "outDir": "./shared/issued/20260114-153313",
+  "certs": [
+
+    {
+      "index": 1,
+      "commonName": "app-001.lab.local",
+      "serialVault": "5f:a8:62:dc:d3:e9:bc:a2:cb:82:8d:7d:15:63:12:ff:28:a5:0d:2c",
+      "notAfter": "Jan 15 15:33:13 2026 GMT",
+      "fingerprintSha256": "63:D7:95:11:BF:68:6C:C6:CB:C3:83:BC:21:17:C1:2D:06:F8:39:7B:02:CE:81:68:7E:D8:ED:DE:11:4C:55:9F",
+      "dir": "cert-001"
+    }
+,
+    {
+      "index": 2,
+      "commonName": "app-002.lab.local",
+      "serialVault": "6c:b5:0f:f7:fd:3d:3a:20:22:01:2c:84:0a:66:1d:c2:07:4d:53:92",
+      "notAfter": "Jan 15 15:33:13 2026 GMT",
+      "fingerprintSha256": "30:3F:80:8F:62:ED:B9:B4:62:D7:02:4C:3D:F2:5F:6E:B5:EF:36:C9:4B:A4:7A:9C:05:3E:03:57:BD:5E:90:8A",
+      "dir": "cert-002"
+    }
+,
+    {
+      "index": 3,
+      "commonName": "app-003.lab.local",
+      "serialVault": "4e:19:5f:bb:cd:fe:d6:68:8b:a8:39:91:d1:26:23:8a:fd:7a:56:e0",
+      "notAfter": "Jan 15 15:33:14 2026 GMT",
+      "fingerprintSha256": "DC:37:59:9C:9B:85:D0:F5:E9:90:A9:AF:92:46:49:45:BA:A6:74:40:BA:5A:92:D4:C9:05:18:71:D4:11:D4:D5",
+      "dir": "cert-003"
+    }
+,
+    {
+      "index": 4,
+      "commonName": "app-004.lab.local",
+      "serialVault": "75:72:d9:f7:2a:7d:1d:65:87:5a:c4:e1:de:64:ef:3a:9a:a6:81:bb",
+      "notAfter": "Jan 15 15:33:14 2026 GMT",
+      "fingerprintSha256": "F9:6B:F5:94:E7:4D:6D:2E:39:05:41:6E:4A:2D:C4:5D:BD:E3:02:93:E2:2D:D7:95:1D:7D:D8:5A:23:12:6B:6C",
+      "dir": "cert-004"
+    }
+,
+    {
+      "index": 5,
+      "commonName": "app-005.lab.local",
+      "serialVault": "0d:62:e9:94:9a:e2:49:46:29:9d:f9:fe:22:48:f8:d5:65:13:b0:ff",
+      "notAfter": "Jan 15 15:33:15 2026 GMT",
+      "fingerprintSha256": "A2:A2:1F:66:42:73:D8:18:B9:57:E2:D4:39:1C:E3:0E:EB:73:D4:0E:01:1B:E6:3A:F5:F8:3D:3D:E7:77:FB:94",
+      "dir": "cert-005"
+    }
+
+  ]
+}

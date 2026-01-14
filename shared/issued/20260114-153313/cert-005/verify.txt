@@ -1,0 +1,9 @@
+CN=app-005.lab.local
+notAfter=Jan 15 15:33:15 2026 GMT
+fingerprintSha256=A2:A2:1F:66:42:73:D8:18:B9:57:E2:D4:39:1C:E3:0E:EB:73:D4:0E:01:1B:E6:3A:F5:F8:3D:3D:E7:77:FB:94
+
+Parse check:
+  ok: openssl can parse leaf.crt
+
+Verify check (using root CA: ./shared/certs/lab-root-ca.pem):
+  ok: openssl verify succeeded

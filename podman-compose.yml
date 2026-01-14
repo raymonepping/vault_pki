@@ -23,12 +23,17 @@ services:
     container_name: certinfo
     restart: unless-stopped
     environment:
+      # cert reading
       CERT_PATH: /shared/certs/nginx.crt
       CHAIN_PATH: /shared/certs/nginx.chain.crt
       CRL_PATH: /shared/www/crl/pki-int.crl.pem
+      # CAaS issuing
+      DEFAULT_OUT_BASE: /shared/www/issued
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:?set VAULT_TOKEN in your env}
       PORT: "3000"
     volumes:
-      - ./shared:/shared:ro
+      - ./shared:/shared
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz >/dev/null 2>&1 || exit 1"]
       interval: 10s

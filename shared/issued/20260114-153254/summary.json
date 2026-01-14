@@ -1,0 +1,20 @@
+{
+  "issuedAtUtc": "2026-01-14T15:32:54Z",
+  "mount": "pki-int",
+  "role": "nginx",
+  "ttl": "24h",
+  "count": 1,
+  "outDir": "./shared/issued/20260114-153254",
+  "certs": [
+
+    {
+      "index": 1,
+      "commonName": "service-001.lab.local",
+      "serialVault": "30:1c:d2:54:a9:14:dc:19:7e:5e:87:75:a7:e9:9f:84:b7:d0:68:55",
+      "notAfter": "Jan 15 15:32:55 2026 GMT",
+      "fingerprintSha256": "04:D8:60:47:A1:57:3D:85:A8:47:7D:EC:08:0D:45:07:E4:F6:BA:99:7B:94:6D:07:94:86:D0:6C:5A:CE:61:FA",
+      "dir": "cert-001"
+    }
+
+  ]
+}

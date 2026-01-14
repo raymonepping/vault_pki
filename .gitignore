@@ -19,6 +19,10 @@ shared/certs/*.csr*
 shared/certs/*.key
 shared/init.txt
 shared/init*.txt
+shared/www/issued/*
+shared/www/crl/*
+shared/www/rotation/*
+shared/rotation/*
 
 ########################################
 # 💻 IDE & Editor Configs
