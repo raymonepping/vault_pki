@@ -55,5 +55,24 @@ services:
       - ./shared/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./shared/www:/usr/share/nginx/html:ro
 
+  ssh-container:
+    build:
+      context: ./ssh-container
+      dockerfile: Containerfile      
+    container_name: ssh-container
+    restart: unless-stopped      
+    ports:
+      - "2222:22"
+    volumes:
+      - ./vault/templates:/vault/templates:ro
+      - ./vault/creds/role_id:/vault/creds/role_id:ro
+      - ./vault/creds/secret_id:/vault/creds/secret_id:ro
+      - ./vault/vault-agent-ssh-container.hcl:/etc/vault-agent.d/vault-agent.hcl:ro
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+    depends_on:
+      - vault
+
+
 volumes:
   vault_file: null

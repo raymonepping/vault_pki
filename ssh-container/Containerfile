@@ -1,0 +1,30 @@
+FROM ubuntu:24.04
+
+ARG VAULT_VERSION=1.19.0
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssh-server ca-certificates curl unzip jq \
+  && rm -rf /var/lib/apt/lists/*
+
+# runtime dirs sshd expects
+RUN mkdir -p /run/sshd /etc/vault-agent.d /vault/templates /vault/creds /etc/ssh/authorized_principals \
+  && chmod 0755 /run/sshd
+
+# host keys (do at build time for simplicity; you can rotate later if you want)
+RUN ssh-keygen -A
+
+# create ubuntu user (idempotent)
+RUN id -u ubuntu >/dev/null 2>&1 || useradd -m -s /bin/bash ubuntu
+
+# install vault
+RUN curl -fsSL "https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_arm64.zip" -o /tmp/vault.zip \
+  && unzip /tmp/vault.zip -d /usr/local/bin \
+  && rm -f /tmp/vault.zip \
+  && chmod 0755 /usr/local/bin/vault
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]

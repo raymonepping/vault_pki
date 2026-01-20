@@ -1,15 +1,15 @@
 {
-  "rotatedAt": "2026-01-14T13:32:28Z",
+  "rotatedAt": "2026-01-20T08:40:37Z",
   "commonName": "nginx.lab.local",
   "ttl": "24h",
-  "backupDir": "./shared/certs/backups/20260114-143227",
+  "backupDir": "./shared/certs/backups/20260120-094036",
   "previous": {
-    "serial": "3906A0EFB557AC3A7DE320B2484E804ACB6B1716",
-    "fingerprint256": "E8:9B:7F:5A:40:81:51:95:95:34:A4:B4:6D:40:2F:44:AD:2A:1A:52:EC:BE:40:20:92:7D:CC:20:7C:CC:93:E2"
+    "serial": "2D99AC345CAF932B4D55C66F9D738FB180280D6D",
+    "fingerprint256": "C9:AD:58:38:0B:35:02:C0:1A:A0:17:2D:A8:77:DA:9C:7B:97:5D:20:19:27:0C:94:4E:71:72:C8:1B:D1:BC:CF"
   },
   "current": {
-    "serial": "6CCA7CFBE072025CBF0C1656AF723B4E4D17FB2E",
-    "fingerprint256": "1A:81:0D:90:94:83:36:CB:8C:FF:3D:58:F4:81:69:44:2F:E7:8B:64:80:4E:BA:CB:4B:6E:7B:6C:37:22:17:EA",
-    "notAfter": "Jan 15 13:32:27 2026 GMT"
+    "serial": "50EF246A927C58854B9E8C9A6ADB6B0319F5EF4C",
+    "fingerprint256": "F0:46:78:54:34:57:F8:B8:76:C8:9A:8D:0A:C8:86:75:EE:1E:A5:04:4E:BC:41:A4:2C:AF:1B:8C:F8:61:9D:12",
+    "notAfter": "Jan 21 08:40:36 2026 GMT"
   }
 }

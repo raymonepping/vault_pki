@@ -16,7 +16,77 @@ ISSUING_CA="${CERT_DIR}/lab-int-issuing-ca.pem"
 CHAIN_CRT="${CERT_DIR}/nginx.chain.crt"
 FULLCHAIN_CRT="${CERT_DIR}/nginx.fullchain.crt"
 
+# macOS trust store install (optional)
+TRUST_ROOT_CA="${TRUST_ROOT_CA:-false}"    # true|false
+TRUST_FORCE="${TRUST_FORCE:-false}"        # true|false
+ROOT_CA_PEM="${ROOT_CA_PEM:-./shared/certs/lab-root-ca.pem}"
+ROOT_CA_CN="${ROOT_CA_CN:-lab.local Root CA}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  rotate_nginx_cert.sh [options]
+
+Options:
+  --trust-root-ca        Install/ensure lab Root CA is trusted in macOS System keychain (requires sudo)
+  --trust-force          Re-add Root CA even if it is already present
+  --root-ca=PATH         Root CA PEM path (default: ./shared/certs/lab-root-ca.pem)
+  --root-ca-cn=CN        CN to search in System keychain (default: lab.local Root CA)
+  --nginx-container=NAME Explicit nginx container name/id (overrides auto-detection)
+  -h, --help             Show this help
+
+Environment:
+  ROLE, CN, ALT_NAMES, IP_SANS, TTL
+  CERT_DIR
+  TRUST_ROOT_CA, TRUST_FORCE, ROOT_CA_PEM, ROOT_CA_CN
+  NGINX_CONTAINER
+EOF
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --trust-root-ca) TRUST_ROOT_CA="true" ;;
+    --trust-force)   TRUST_FORCE="true" ;;
+    --root-ca=*)     ROOT_CA_PEM="${arg#*=}" ;;
+    --root-ca-cn=*)  ROOT_CA_CN="${arg#*=}" ;;
+    --nginx-container=*) NGINX_CONTAINER="${arg#*=}" ;;
+    -h|--help) usage; exit 0 ;;
+  esac
+done
+
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
+
+install_root_ca_macos() {
+  if [[ "$(uname -s)" != "Darwin" ]]; then
+    echo "Skipping root CA trust install (not macOS)."
+    return 0
+  fi
+
+  if [[ ! -f "$ROOT_CA_PEM" ]]; then
+    echo "Root CA PEM not found: $ROOT_CA_PEM" >&2
+    return 1
+  fi
+
+  echo
+  echo "Root CA to trust: $ROOT_CA_PEM"
+  openssl x509 -in "$ROOT_CA_PEM" -noout -subject -issuer || true
+
+  if security find-certificate -c "$ROOT_CA_CN" /Library/Keychains/System.keychain >/dev/null 2>&1; then
+    if [[ "$TRUST_FORCE" != "true" ]]; then
+      echo "Root CA already present in System.keychain (CN=$ROOT_CA_CN). Skipping."
+      return 0
+    fi
+    echo "Root CA already present, but TRUST_FORCE=true. Re-adding anyway."
+  fi
+
+  echo "Installing Root CA into macOS System.keychain (requires sudo)..."
+  sudo security add-trusted-cert -d -r trustRoot \
+    -k /Library/Keychains/System.keychain \
+    "$ROOT_CA_PEM"
+
+  echo "Verifying trust store entry:"
+  security find-certificate -c "$ROOT_CA_CN" /Library/Keychains/System.keychain | sed -n '1,40p' || true
+}
 
 need vault
 need podman
@@ -150,12 +220,38 @@ if [[ -n "${serial}" && "${serial}" != "null" ]]; then
   echo "Vault serial_number: ${serial}"
 fi
 
+# --- Find nginx container (do not assume it's literally named "nginx") ---
+NGINX_CONTAINER="${NGINX_CONTAINER:-}"
+
+if [[ -z "${NGINX_CONTAINER}" ]]; then
+  # Prefer an exact container_name: nginx if present, else fall back to compose-style *_nginx
+  if podman ps --format '{{.Names}}' | grep -qx 'nginx'; then
+    NGINX_CONTAINER='nginx'
+  else
+    NGINX_CONTAINER="$(podman ps --format '{{.Names}}' | grep -E '(^|_)nginx$' | head -n1 || true)"
+  fi
+fi
+
+if [[ -z "${NGINX_CONTAINER}" ]]; then
+  echo "ERROR: Could not find a running nginx container." >&2
+  echo "Running containers:" >&2
+  podman ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}" >&2
+  exit 1
+fi
+
+echo "Using nginx container: ${NGINX_CONTAINER}"
+# --- End nginx container lookup ---
+
 echo
 echo "Testing nginx config inside container..."
-podman exec nginx nginx -t
+podman exec "${NGINX_CONTAINER}" nginx -t
 
 echo "Reloading nginx..."
-podman exec nginx nginx -s reload
+podman exec "${NGINX_CONTAINER}" nginx -s reload
+
+if [[ "$TRUST_ROOT_CA" == "true" ]]; then
+  install_root_ca_macos
+fi
 
 echo
 echo "Verifying via dashboard endpoint:"

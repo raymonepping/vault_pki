@@ -1,0 +1,22 @@
+services:
+  ssh-container:
+    build:
+      context: ./ssh-container
+      dockerfile: Containerfile
+    container_name: ssh-container
+    restart: unless-stopped
+    ports:
+      - "2222:22"
+    volumes:
+      - ./vault/templates:/vault/templates:ro
+      - ./vault/creds/role_id:/vault/creds/role_id:ro
+      - ./vault/creds/secret_id:/vault/creds/secret_id:ro
+      - ./vault/vault-agent-ssh-container.hcl:/etc/vault-agent.d/vault-agent.hcl:ro
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+    networks:
+      - vault_pki_default
+
+networks:
+  vault_pki_default:
+    external: true

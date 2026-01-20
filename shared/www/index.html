@@ -78,6 +78,10 @@
         font-size: 14px;
         cursor: pointer;
         backdrop-filter: blur(10px);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;        
       }
       .btn:hover { background: rgba(255, 255, 255, 0.10); }
       .btn:active { transform: translateY(1px); }
@@ -237,6 +241,7 @@
           </p>
         </div>
         <div class="actions">
+          <a class="btn" href="/issued/index.html">Issue Certificates</a>
           <button class="btn" id="refreshBtn">Refresh</button>
           <button class="btn" id="copyUrlBtn">Copy URL</button>
         </div>
