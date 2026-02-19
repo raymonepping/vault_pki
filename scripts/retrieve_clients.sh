@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# intelligent.sh
 # Correlate Vault "clients" without audit logs using token accessors, token metadata,
 # optional entity correlation, and optional leases.
 #
